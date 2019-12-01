@@ -15,9 +15,14 @@ Write your code in this editor and press "Run" button to execute it.
 from collections import namedtuple
 import functools
 import pandas as pd
+import openpyxl
+import sys
+
 
 Packaging = namedtuple('Package', 'box, items_per_box, last_parcel')
 ItemTuple = namedtuple('ItemTuple', 'item_number, dimensions, weight')
+
+
 
 def reduce(function, iterable, initializer=None):
     it = iter(iterable)
@@ -342,9 +347,102 @@ def runerr():
         print(packed_items)
         print(len(packed_items))
 
-def handle_order(sku_list):
-    items = []
+def handle_order(item_list, box_list):
+    items_to_pack = sorted(item_list, key=lambda item: item.dimensions[2],
+                          reverse=True)
+    packed_items = None
+    box = None
+    parsed = None
+    for i in range(0,len(box_list)):
+        print(box_list[i][0])
+        print(box_list[i][1])
+        can_use_box  = True
 
-print("Hello World")
-runerr()
-print("Hello World")
+        for item in item_list:
+            if not does_it_fit(item[1],box_list[i][1]):
+                can_use_box = False
+                break
+        if can_use_box:
+            box = box_list[i][0]
+            packed_items = pack_boxes(box_list[i][1],items_to_pack)
+            parsed = []
+            total
+            for i in range(len(packed_items)):
+                box = []
+                for tuple in packed_items[i]:
+                    box.append(tuple[0])
+                parsed.append(box)
+            print(packed_items)
+            print(parsed)
+            print(len(packed_items))
+            print()
+        else:
+            print("at least one item doesn't fit")
+        print()
+
+    return box, packed_items, parsed
+
+
+def main():
+    sku_file = 'Dimensioning value pasted.xlsx'
+    box_file = 'LV Box Dimensions.xlsx'
+    sku_df = None
+    box_list = []
+    if len(sys.argv) != 2:
+        print("error incorrect arguments")
+    if sys.argv[1] == 'Full':
+        sku_df = pd.read_excel(sku_file)
+        sku_df.set_index('CODPRO', inplace = True)
+    elif sys.argv[1] == "Demo":
+        nrows = 20
+        book = openpyxl.load_workbook(filename = sku_file, read_only = True, data_only=True)
+        first_sheet = book.worksheets[2]
+        rows_generator = first_sheet.values
+        header_row = next(rows_generator)
+        data_rows = [row for (_, row) in zip(range(nrows - 1), rows_generator)]
+        sku_df = pd.DataFrame(data_rows, columns = header_row)
+        sku_df.set_index('CODPRO', inplace = True)
+    else:
+        print("error incorrect arguments")
+
+    df = pd.read_excel(box_file)
+
+    for index,row in df.iterrows():
+        name = row['Box Name']
+        dim1 = row['Length']
+        dim2 = row['Width']
+        dim3 = row['Height']
+        box_list.append((name,sorted([int(dim1),int(dim2),int(dim3)])))
+
+    while True:
+        print()
+        print("input sku list in following format\nsku1 qty1 sku2 qty2 etc (make sure to include spaces):")
+        print()
+        separated = sys.stdin.readline().strip().split()
+        item_info = []
+        if len(separated) % 2 != 0:
+            print("invalid input")
+            continue
+        else:
+            failure = False
+            for i in range(0,len(separated),2):
+                item = sku_df.loc[separated[i]]
+                if not item.any():
+                    failure = True
+                    break
+                qty = separated[i+1]
+                tuple = None
+                if item.HAUUVC != 0:
+                    tuple = ItemTuple(separated[i], sorted([int(item.HAUUVC), int(item.LNGUVC), int(item.LRGUVC)]), 0)
+                else:
+                    tuple = ItemTuple(separated[i], sorted([int(item.HAUCOL), int(item.LNGCOL), math.ceil(int(item.LRGCOL)/int(item.PCBPRO))]), 0)
+                for j in range(int(qty)):
+                    item_info.append(tuple)
+            if failure:
+                print("invalid input")
+            else:
+                print(item_info)
+                print(handle_order(item_info,box_list))
+
+if __name__ == '__main__':
+    main()
