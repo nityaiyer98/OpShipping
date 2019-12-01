@@ -353,6 +353,7 @@ def handle_order(item_list, box_list):
     packed_items = None
     box = None
     parsed = None
+    total_cardboard = 0
     for i in range(0,len(box_list)):
         print(box_list[i][0])
         print(box_list[i][1])
@@ -366,7 +367,10 @@ def handle_order(item_list, box_list):
             box = box_list[i][0]
             packed_items = pack_boxes(box_list[i][1],items_to_pack)
             parsed = []
-            total
+            length = box_list[i][1][0]
+            width = box_list[i][1][1]
+            height = box_list[i][1][2]
+            total_cardboard = len(packed_items) * (2*length*width + 2 * width*height + 2 * length * height)
             for i in range(len(packed_items)):
                 box = []
                 for tuple in packed_items[i]:
@@ -375,12 +379,12 @@ def handle_order(item_list, box_list):
             print(packed_items)
             print(parsed)
             print(len(packed_items))
-            print()
+            print(total_cardboard)
         else:
             print("at least one item doesn't fit")
         print()
 
-    return box, packed_items, parsed
+    return box, packed_items, parsed, total_cardboard
 
 
 def main():
