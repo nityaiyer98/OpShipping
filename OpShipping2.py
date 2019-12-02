@@ -1,17 +1,3 @@
-'''
-
-                            Online Python Interpreter.
-                Code, Compile, Run and Debug python program online.
-Write your code in this editor and press "Run" button to execute it.
-
-'''
-'''
-
-                            Online Python Interpreter.
-                Code, Compile, Run and Debug python program online.
-Write your code in this editor and press "Run" button to execute it.
-
-'''
 from collections import namedtuple
 import functools
 import pandas as pd
@@ -431,9 +417,6 @@ def main():
             failure = False
             for i in range(0,len(separated),2):
                 item = sku_df.loc[separated[i]]
-                if not item.any():
-                    failure = True
-                    break
                 qty = separated[i+1]
                 tuple = None
                 if item.HAUUVC != 0:
