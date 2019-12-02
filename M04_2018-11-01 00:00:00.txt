@@ -1,0 +1,12 @@
+RTW
+use box Box WH-10
+in box 1 put the following SKUs ['1A4QCH', '1A4QCI']
+in box 2 put the following SKUs ['1A4QCJ', '1A4QCK']
+in box 3 put the following SKUs ['1A4QCL']
+% utilization: 65.625
+
+W&J
+use box Landsberg-1183018-LV255
+in box 1 put the following SKUs ['R15307']
+% utilization: 6.944444444444445
+

@@ -1,0 +1,15 @@
+Perfume
+use box Landsberg-1183018-LV255
+in box 1 put the following SKUs ['LP0084']
+% utilization: 58.333333333333336
+
+RTW
+use box Box WH-10
+in box 1 put the following SKUs ['1A4QCK', '1A4QCL']
+% utilization: 78.75
+
+W&J
+use box Landsberg-166754
+in box 1 put the following SKUs ['R10202']
+% utilization: 18.229166666666664
+

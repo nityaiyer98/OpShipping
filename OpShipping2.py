@@ -351,6 +351,7 @@ def handle_order(item_list, box_list):
         for item in item_list:
             if not does_it_fit(item[1],box_list[i][1]):
                 can_use_box = False
+                print(str(item[0])+" "+str(item[1])+" "+str(box_list[i][1]))
                 break
         if can_use_box:
             packed_items = pack_boxes(box_list[i][1],items_to_pack)
@@ -368,23 +369,29 @@ def handle_order(item_list, box_list):
             '''print(box + " " + str(length) + " " + str(width) + " " + str(height) + " ")
             print(box + " uses " + str(total_volume) + "in^3")'''
             if best_packed_items == None or total_volume < best_total_volume:
-                    best_packed_items = packed_items
-                    best_box = box
-                    best_parsed = parsed
-                    best_total_volume = total_volume
+                best_packed_items = packed_items
+                best_box = box
+                best_parsed = parsed
+                best_total_volume = total_volume
 
     return best_box, best_parsed, best_total_volume, total_item_volume
 
 
 
 def main():
-    sku_file = 'Dimensioning value pasted 12.2 v2.xlsx'
+    sku_file = 'Dimensioning value pasted 12.2 v3.xlsx'
     box_file = 'LV Box Dimensions.xlsx'
     sku_df = None
     box_list = []
     
     sku_df = pd.read_excel(sku_file, sheet_name='Order Dimensions')
     sku_df.set_index('CODPRO', inplace = True)
+
+    order_df = pd.read_excel(sku_file, sheet_name='For Aakash')
+    order_df.sort_values(by=['CLILIV','Product Category'],inplace=True)
+    current_store = None
+    current_category = None
+    current_items = None
 
     df = pd.read_excel(box_file)
 
@@ -395,6 +402,48 @@ def main():
         dim3 = row['Height']
         box_list.append((name,sorted([int(dim1),int(dim2),int(dim3)])))
 
+    for index,row in order_df.iterrows():
+        if not current_store or current_store != row['CLILIV'] or current_category != row['Product Category']:
+            if current_items:
+                file = open(str(current_store)+str('_')+str(row['Date'])+str('.txt'),"a")
+                best_box, best_parsed, best_total_volume, total_item_volume = handle_order(current_items,box_list)
+                # write out to the current text file
+                file.write(str(current_category)+"\n")
+                if best_box == None:
+                    file.write("at least one item doesn't fit in any box\n\n")
+                else:
+                    file.write("use box " + str(best_box)+"\n")
+                    for i in range(len(best_parsed)):
+                        file.write("in box " + str(i+1) + " put the following SKUs " + str(best_parsed[i])+"\n")
+                    file.write("% utilization: " + str(100*(total_item_volume/best_total_volume))+"\n"+"\n")
+                file.close()
+            current_items = []
+            current_category = row['Product Category']
+            current_store = row['CLILIV']
+        item = sku_df.loc[row['CODPRO']]
+        qty = int(row['Picks'])
+        tuple = None
+        if item.HAUUVC != 0:
+            tuple = ItemTuple(row['CODPRO'], sorted([int(item.HAUUVC), int(item.LNGUVC), int(item.LRGUVC)]))
+        else:
+            tuple = ItemTuple(row['CODPRO'], sorted([int(item.HAUCOL), int(item.LNGCOL), math.ceil(int(item.LRGCOL)/int(item.PCBPRO))]))
+        for j in range(int(qty)):
+            current_items.append(tuple)
+    file = open(str(current_store)+str('_')+str(row['Date'])+str('.txt'))
+    if current_items:
+        file = open(str(current_store)+str('_')+str(row['Date'])+str('.txt'),"a")
+        best_box, best_parsed, best_total_volume, total_item_volume = handle_order(current_items,box_list)
+        # write out to the current text file
+        file.write(str(current_category)+"\n")
+        if best_box == None:
+            file.write("at least one item doesn't fit in any box\n\n")
+        else:
+            file.write("use box " + str(best_box)+"\n")
+            for i in range(len(best_parsed)):
+                file.write("in box " + str(i+1) + " put the following SKUs " + str(best_parsed[i])+"\n")
+            file.write("% utilization: " + str(100*(total_item_volume/best_total_volume))+"\n"+"\n")
+        file.close()
+'''
     while True:
         print()
         print("input sku list in following format\nsku1 qty1 sku2 qty2 etc (make sure to include spaces):")
@@ -428,6 +477,6 @@ def main():
                     for i in range(len(best_parsed)):
                         print("in box " + str(i+1) + " put the following SKUs " + str(best_parsed[i]))
                     print("% utilization: " + str(100*(total_item_volume/best_total_volume)))
-
+'''
 if __name__ == '__main__':
     main()
