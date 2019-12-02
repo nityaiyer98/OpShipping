@@ -3,10 +3,11 @@ import functools
 import pandas as pd
 import openpyxl
 import sys
+import math
 
 
 Packaging = namedtuple('Package', 'box, items_per_box, last_parcel')
-ItemTuple = namedtuple('ItemTuple', 'item_number, dimensions, weight')
+ItemTuple = namedtuple('ItemTuple', 'item_number, dimensions')
 
 
 
@@ -310,8 +311,8 @@ def test_pack_boxes_one_item():
         '''
         test exact fit one item
         '''
-        item1 = ItemTuple('Item1', [13, 13, 31], 0)
-        item2 = ItemTuple('Item2', [13, 13, 31], 0)
+        item1 = ItemTuple('Item1', [13, 13, 31])
+        item2 = ItemTuple('Item2', [13, 13, 31])
         item_info = [item1,item2]
         box_dims = [13, 13, 31]
 
@@ -320,9 +321,9 @@ def test_pack_boxes_one_item():
         print(len(packed_items))
 
 def runerr():
-    item1 = ItemTuple('Item1', [13, 13, 31], 0)
-    item2 = ItemTuple('Item2', [8, 13, 29], 0)
-    item3 = ItemTuple('Item3', [5, 13, 27], 0)
+    item1 = ItemTuple('Item1', [13, 13, 31])
+    item2 = ItemTuple('Item2', [8, 13, 29])
+    item3 = ItemTuple('Item3', [5, 13, 27])
     item_info = [item1,item2,item3]
     items_to_pack = sorted(item_info, key=lambda item: item.dimensions[2],
                           reverse=True)
@@ -336,13 +337,15 @@ def runerr():
 def handle_order(item_list, box_list):
     items_to_pack = sorted(item_list, key=lambda item: item.dimensions[2],
                           reverse=True)
-    packed_items = None
-    box = None
-    parsed = None
-    total_cardboard = 0
+    total_item_volume = 0
+    for item in item_list:
+        total_item_volume += item[1][0]*item[1][1]*item[1][2]
+    'print(total_item_volume)'
+    best_packed_items = None
+    best_box = None
+    best_parsed = None
+    best_total_volume = 0
     for i in range(0,len(box_list)):
-        print(box_list[i][0])
-        print(box_list[i][1])
         can_use_box  = True
 
         for item in item_list:
@@ -350,50 +353,38 @@ def handle_order(item_list, box_list):
                 can_use_box = False
                 break
         if can_use_box:
-            box = box_list[i][0]
             packed_items = pack_boxes(box_list[i][1],items_to_pack)
             parsed = []
-            length = box_list[i][1][0]
-            width = box_list[i][1][1]
-            height = box_list[i][1][2]
-            total_cardboard = len(packed_items) * (2*length*width + 2 * width*height + 2 * length * height)
-            for i in range(len(packed_items)):
+            length = float(box_list[i][1][0])
+            width = float(box_list[i][1][1])
+            height = float(box_list[i][1][2])
+            total_volume = len(packed_items) * (float(length) * float(width) * float(height))
+            for j in range(len(packed_items)):
                 box = []
-                for tuple in packed_items[i]:
+                for tuple in packed_items[j]:
                     box.append(tuple[0])
                 parsed.append(box)
-            print(packed_items)
-            print(parsed)
-            print(len(packed_items))
-            print(total_cardboard)
-        else:
-            print("at least one item doesn't fit")
-        print()
+            box = box_list[i][0]
+            '''print(box + " " + str(length) + " " + str(width) + " " + str(height) + " ")
+            print(box + " uses " + str(total_volume) + "in^3")'''
+            if best_packed_items == None or total_volume < best_total_volume:
+                    best_packed_items = packed_items
+                    best_box = box
+                    best_parsed = parsed
+                    best_total_volume = total_volume
 
-    return box, packed_items, parsed, total_cardboard
+    return best_box, best_parsed, best_total_volume, total_item_volume
+
 
 
 def main():
-    sku_file = 'Dimensioning value pasted.xlsx'
+    sku_file = 'Dimensioning value pasted 12.2 v2.xlsx'
     box_file = 'LV Box Dimensions.xlsx'
     sku_df = None
     box_list = []
-    if len(sys.argv) != 2:
-        print("error incorrect arguments")
-    if sys.argv[1] == 'Full':
-        sku_df = pd.read_excel(sku_file)
-        sku_df.set_index('CODPRO', inplace = True)
-    elif sys.argv[1] == "Demo":
-        nrows = 20
-        book = openpyxl.load_workbook(filename = sku_file, read_only = True, data_only=True)
-        first_sheet = book.worksheets[2]
-        rows_generator = first_sheet.values
-        header_row = next(rows_generator)
-        data_rows = [row for (_, row) in zip(range(nrows - 1), rows_generator)]
-        sku_df = pd.DataFrame(data_rows, columns = header_row)
-        sku_df.set_index('CODPRO', inplace = True)
-    else:
-        print("error incorrect arguments")
+    
+    sku_df = pd.read_excel(sku_file, sheet_name='Order Dimensions')
+    sku_df.set_index('CODPRO', inplace = True)
 
     df = pd.read_excel(box_file)
 
@@ -420,16 +411,23 @@ def main():
                 qty = separated[i+1]
                 tuple = None
                 if item.HAUUVC != 0:
-                    tuple = ItemTuple(separated[i], sorted([int(item.HAUUVC), int(item.LNGUVC), int(item.LRGUVC)]), 0)
+                    tuple = ItemTuple(separated[i], sorted([int(item.HAUUVC), int(item.LNGUVC), int(item.LRGUVC)]))
                 else:
-                    tuple = ItemTuple(separated[i], sorted([int(item.HAUCOL), int(item.LNGCOL), math.ceil(int(item.LRGCOL)/int(item.PCBPRO))]), 0)
+                    tuple = ItemTuple(separated[i], sorted([int(item.HAUCOL), int(item.LNGCOL), math.ceil(int(item.LRGCOL)/int(item.PCBPRO))]))
                 for j in range(int(qty)):
                     item_info.append(tuple)
             if failure:
                 print("invalid input")
             else:
-                print(item_info)
-                print(handle_order(item_info,box_list))
+                best_box, best_parsed, best_total_volume, total_item_volume = handle_order(item_info,box_list)
+                if best_box == None:
+                    print("at least one item doesn't fit in any box")
+                else:
+                    print(best_box)
+                    print("use box " + best_box)
+                    for i in range(len(best_parsed)):
+                        print("in box " + str(i+1) + " put the following SKUs " + str(best_parsed[i]))
+                    print("% utilization: " + str(100*(total_item_volume/best_total_volume)))
 
 if __name__ == '__main__':
     main()
